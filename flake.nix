@@ -1,21 +1,32 @@
 {
   description = "A wrapper flake for lojix";
-
   inputs = {
-    flakeWorld = { type = "indirect"; id = "flakeWorld"; };
-
-    clj-nix = {
-      type = "indirect";
-      id = "clj-nix";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
-
-    src = {
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+    flake-utils.url = "github:numtide/flake-utils";
+    clj-nix.url = "github:jlesquembre/clj-nix";
+    lojix = {
       url = "github:sajban/lojix";
-      false = false;
+      flake = false;
     };
   };
 
-  outputs = inputs@{ self, flakeWorld, ... }:
-    flakeWorld.make.simpleWrapperFlake inputs;
+  outputs = { self, nixpkgs, flake-utils, clj-nix, lojix }:
+
+    flake-utils.lib.eachDefaultSystem (system: {
+
+      packages = {
+
+        default = clj-nix.lib.mkCljApp {
+          pkgs = nixpkgs.legacyPackages.${system};
+          modules = [{
+            projectSrc = lojix;
+            name = "sajban/lojix";
+            main-ns = "lojix.main";
+            version = "bootstrap";
+            nativeImage.enable = false;
+          }];
+        };
+
+      };
+    });
 }
